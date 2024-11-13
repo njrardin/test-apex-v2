@@ -3,11 +3,22 @@ import './App.css'
 
 function App() {
 
+    //! Issue - because React.StrictMode double renders this (which may sometimes occur in production as well)
+    //! The Collect.js script is loaded twice, which causes the inserted fields to be double-rendered 
     React.useEffect(() => {
-        // Step 1: Add the script tag to the head of the document
+        // Step 1: Load the Collect.js script
+        const script = document.createElement("script");
+        script.src = "https://payments.go-afs.com/token/Collect.js";
+        script.setAttribute("data-tokenization-key", "Udt4Wn-N2J4nM-VSTsFK-J6y3QN");
+        script.onload = () => {
+            configureCollectJS();
+        }
+        document.head.appendChild(script);
         
-
-        configureCollectJS();
+        // Step 3: When the component unmounts, remove the script tag
+        return () => {
+            document.head.removeChild(script);
+        }
     }, []);
 
     function configureCollectJS() {
