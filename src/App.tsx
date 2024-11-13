@@ -4,9 +4,6 @@ import './App.css'
 function App() {
 
     React.useEffect(() => {
-        // Step 1: Add the script tag to the head of the document
-        
-
         configureCollectJS();
     }, []);
 
