@@ -4,13 +4,14 @@
   padding: 2rem;
 }
 
-.card {
+.payment-form {
   display: flex;
   flex-direction: column;
   justify-content: start;
   align-items: start;
 }
-.payment-form{
+
+.fields {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1em;
