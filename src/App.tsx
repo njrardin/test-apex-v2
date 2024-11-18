@@ -1,55 +1,107 @@
-import React from 'react';
-import './App.css'
+import React from "react";
+import "./App.css";
 
 function App() {
+    return (
+        <>
+            <h1>Apex V2 + React</h1>
+            <PaymentForm />
+        </>
+    );
+}
+export default App;
 
-    //! Issue - because React.StrictMode double renders this (which may sometimes occur in production as well)
-    //! The Collect.js script is loaded twice, which causes the inserted fields to be double-rendered 
+type CollectJsConfig = unknown;
+type CollectJsFormProps = {
+    tokenizationKey: string;
+    config: CollectJsConfig;
+    children: React.ReactNode;
+};
+const CollectJsForm: React.FC<CollectJsFormProps> = ({ tokenizationKey, config, children }) => {
+    return (
+        <CollectJsFormWrapper tokenizationKey={tokenizationKey}>
+            <CollectJsFormConfigInitializer config={config}>
+                {children}
+            </CollectJsFormConfigInitializer>
+        </CollectJsFormWrapper>
+    );    
+};
+
+type CollectJsFormWrapper = React.FC<Pick<CollectJsFormProps, "tokenizationKey" | "children">>;
+const CollectJsFormWrapper: CollectJsFormWrapper = ({ tokenizationKey, children }) => {
+    const [scriptLoaded, setScriptLoaded] = React.useState(false);
     React.useEffect(() => {
-        // Step 1: Load the Collect.js script
-        const script = document.createElement("script");
-        script.src = "https://payments.go-afs.com/token/Collect.js";
-        script.setAttribute("data-tokenization-key", "Udt4Wn-N2J4nM-VSTsFK-J6y3QN");
-        script.onload = () => {
-            configureCollectJS();
+        const existingScript = document.querySelector("#collect-js-script");
+        if (existingScript) {
+            setScriptLoaded(true);
+            return ;
         }
-        document.head.appendChild(script);
-        
-        // Step 3: When the component unmounts, remove the script tag
-        return () => {
-            document.head.removeChild(script);
-        }
-    }, []);
+        else {
+            const script = document.createElement("script");
+            script.id = "collect-js-script";
+            script.src = "https://payments.go-afs.com/token/Collect.js";
+            script.async = true;
+            script.setAttribute(
+                "data-tokenization-key",
+                tokenizationKey
+            );
+            script.onload = () => {
+                setScriptLoaded(true);
+            };
+            document.head.appendChild(script);
 
-    function configureCollectJS() {
+            return () => {
+                script.onload = null;
+                setScriptLoaded(false);
+                document.head.removeChild(script);
+            };
+        }
+    }, [tokenizationKey]);
+
+    if (!scriptLoaded) {
+        return <></>
+    }
+    return <>{children}</>;
+}
+
+type CollectJsFormConfigInitializer = React.FC<Pick<CollectJsFormProps, "config" | "children">>;
+const CollectJsFormConfigInitializer: CollectJsFormConfigInitializer  = ({ config, children }) => {
+    React.useEffect(() => {
         if (!window.CollectJS) {
             console.error(
                 "Sorry, there was an error reaching our payment processor. Please try again later."
             );
         }
-        window.CollectJS.configure({
-            paymentSelector: "#payButton",
-            variant: "inline",
-            fields: {
-                ccnumber: {
-                    selector: "#ccnumber",
-                    placeholder: "0000 0000 0000 0000",
-                },
-                ccexp: { selector: "#ccexp", placeholder: "MM / YY" },
-                cvv: { selector: "#cvv", placeholder: "***" },
+        window.CollectJS.configure(config);
+    }, [config]);
+
+    return <>{children}</>;
+}
+
+const PaymentForm: React.FC = () => {
+
+    const collectJsConfig = {
+        paymentSelector: "#payButton",
+        variant: "inline",
+        fields: {
+            ccnumber: {
+                selector: "#ccnumber",
+                placeholder: "0000 0000 0000 0000",
             },
-            fieldsAvailableCallback: () => {
-                console.log("fieldsAvailableCallback");
-            },
-            callback: (response: unknown) => {
-                console.log("callback", response);
-            },
-        });
-    }
+            ccexp: { selector: "#ccexp", placeholder: "MM / YY" },
+            cvv: { selector: "#cvv", placeholder: "***" },
+        },
+        fieldsAvailableCallback: () => {
+            console.log("fieldsAvailableCallback");
+        },
+        callback: (response: unknown) => {
+            console.log("callback", response);
+        },
+    };
 
     return (
-        <div>
-            <h1>Apex V2 + React Demo</h1>
+        // Dynamically provide the tokenization key and Collect.js configuration
+        <CollectJsForm tokenizationKey="Udt4Wn-N2J4nM-VSTsFK-J6y3QN" config={collectJsConfig}>
             <div className="card">
                 <h2>Payment Form Example</h2>
                 <form
@@ -100,14 +152,11 @@ function App() {
                     <div id="cvv">
                         <span>CVV</span>
                     </div>
-
                     <button id="payButton" type="submit">
                         Pay
                     </button>
                 </form>
             </div>
-        </div>
+        </CollectJsForm>
     );
-}
-
-export default App
+};
